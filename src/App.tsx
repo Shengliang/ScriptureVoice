@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { BookOpen, Loader2, Volume2, Menu, ChevronLeft, ChevronRight, Info, Music, Copy, Check, History, WifiOff, Download, Share2, ClipboardCopy, ExternalLink, Settings } from './components/Icons';
+import { BookOpen, Loader2, Volume2, ImageIcon, Menu, ChevronLeft, ChevronRight, Info, Sparkles, Music, Copy, Check, History, WifiOff, Download, Share2, ClipboardCopy, ExternalLink, Settings } from './components/Icons';
 import SearchBox from './components/SearchBox';
 import VoiceSelector from './components/VoiceSelector';
 import LanguageSelector from './components/LanguageSelector';
@@ -12,7 +12,7 @@ import CacheModal from './components/CacheModal';
 import HistorySidebar from './components/HistorySidebar';
 import SettingsModal from './components/SettingsModal';
 import { SearchResult, VoiceName, Language, PlaylistItem } from './types';
-import { searchVerseOnly, generateDevotional, generateSegmentSpeech, generateSongLyrics, checkCacheExistence } from './services/geminiService';
+import { searchVerseOnly, generateDevotional, generateSegmentSpeech, generateBibleImage, generateSongLyrics, checkCacheExistence, getCachedImage } from './services/geminiService';
 import { splitTextIntoChunks } from './utils/audioUtils';
 import { getAdjacentChapterQuery } from './utils/bibleNavigation';
 import { TRANSLATIONS } from './constants/locales';
@@ -36,6 +36,9 @@ const App: React.FC = () => {
   const [selectedVoice, setSelectedVoice] = useState<VoiceName>(VoiceName.Fenrir);
   const [podcastLength, setPodcastLength] = useState<number>(1); 
   
+  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+
   // --- Song/Lyrics State ---
   const [songLyrics, setSongLyrics] = useState<string | null>(null);
   const [isGeneratingLyrics, setIsGeneratingLyrics] = useState(false);
@@ -59,7 +62,7 @@ const App: React.FC = () => {
   const [pendingCacheData, setPendingCacheData] = useState<SearchResult | null>(null);
   const [pendingQuery, setPendingQuery] = useState<string>('');
 
-  const CLIENT_VERSION = "5.6.5";
+  const CLIENT_VERSION = "5.8.0";
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   
   const t = TRANSLATIONS[language];
@@ -89,8 +92,10 @@ const App: React.FC = () => {
   const resetContentState = () => {
     setSearchResult(null);
     resetAudioState();
+    setGeneratedImageUrl(null);
     setSongLyrics(null);
     setIsLoadingDevotional(false);
+    setIsGeneratingImage(false);
     setIsGeneratingLyrics(false);
     setError(null);
     setIsShareMenuOpen(false);
@@ -131,6 +136,10 @@ const App: React.FC = () => {
       const initialResult = await searchVerseOnly(query, language, forceRefresh);
       setSearchResult(initialResult);
       setIsSearching(false); // Stop main loader immediately
+
+      // Try to load cached image if available
+      const cachedImg = getCachedImage(initialResult.passage.text);
+      if (cachedImg) setGeneratedImageUrl(cachedImg);
 
       // Step 2: Start Background Devotional Task
       setIsLoadingDevotional(true);
@@ -177,6 +186,21 @@ const App: React.FC = () => {
   const handleGenerateNew = () => {
     if (pendingQuery) {
       executeSearch(pendingQuery, true); // true = force refresh
+    }
+  };
+
+  const handleGenerateImage = async () => {
+    if (!searchResult || isGeneratingImage) return;
+    
+    setIsGeneratingImage(true);
+    try {
+      const url = await generateBibleImage(searchResult.passage.text);
+      setGeneratedImageUrl(url);
+    } catch (e: any) {
+      console.error("Image generation failed", e);
+      setError(e.message || "Failed to generate image");
+    } finally {
+      setIsGeneratingImage(false);
     }
   };
 
@@ -229,13 +253,22 @@ const App: React.FC = () => {
     // 1. Prepare Plain Text Version
     const plainText = `${title}\n\n"${text}"\n\n${devotional}${lyricsText}`;
 
-    // 2. Prepare HTML Version (Rich Text)
+    // 2. Prepare HTML Version (Rich Text with Image)
     let htmlContent = `
       <h1 style="font-family: serif; color: #2c2c2c;">${title}</h1>
       <blockquote style="border-left: 4px solid #ccc; padding-left: 10px; color: #555; font-style: italic;">
         "${text}"
       </blockquote>
     `;
+
+    // Include Image if it exists
+    if (generatedImageUrl) {
+      htmlContent += `
+        <div style="margin: 20px 0;">
+          <img src="${generatedImageUrl}" alt="Biblical Illustration" style="max-width: 100%; height: auto; border-radius: 8px;" />
+        </div>
+      `;
+    }
 
     htmlContent += `
       <h3 style="color: #444;">${t.devotionalLabel}</h3>
@@ -666,7 +699,7 @@ const App: React.FC = () => {
                     </button>
                   </div>
                   
-                  {/* Action Buttons Group (Play + Song + Share) */}
+                  {/* Action Buttons Group (Play + Share) */}
                   <div className="flex items-center gap-2 w-full md:w-auto justify-center md:justify-end mt-2 md:mt-0 print:hidden">
                      {/* Play Button */}
                      {playlist.length === 0 && (
@@ -748,10 +781,51 @@ const App: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Creative Area - Song Lyrics Only (Image Section Removed) */}
+                {/* Creative Area - Image and Song */}
                 <div className="w-full bg-stone-100 border-b border-bible-50 relative print:bg-white">
+                  
+                  {/* Image Generation Section */}
+                  <div className="min-h-[200px] bg-stone-100 relative overflow-hidden group print:bg-white">
+                    {isGeneratingImage ? (
+                      <div className="absolute inset-0 flex items-center justify-center bg-stone-100 animate-pulse h-56">
+                        <div className="text-center text-bible-400">
+                          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />
+                          <span className="text-sm font-medium">{t.generatingImage}</span>
+                        </div>
+                      </div>
+                    ) : generatedImageUrl ? (
+                      <div className="relative h-auto md:h-80 print:h-auto print:max-h-[400px]">
+                        <img 
+                          src={generatedImageUrl} 
+                          alt="Biblical Visualization" 
+                          className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105 animate-fade-in print:object-contain"
+                        />
+                        <div className="absolute bottom-2 right-2 bg-black/50 backdrop-blur-md text-white text-xs px-2 py-1 rounded flex items-center gap-1 print:hidden">
+                          <ImageIcon className="w-3 h-3" />
+                          <span>{isOnline ? 'AI Generated' : 'Saved Image'}</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="h-56 flex items-center justify-center bg-[radial-gradient(#d2bab0_1px,transparent_1px)] [background-size:24px_24px] print:hidden">
+                        <div className="flex gap-4">
+                          <button 
+                            onClick={handleGenerateImage}
+                            disabled={!isOnline}
+                            className="flex items-center gap-2 bg-white/90 backdrop-blur text-bible-700 px-5 py-3 rounded-xl border border-bible-200 shadow-md hover:shadow-lg hover:bg-white hover:text-bible-900 transition-all transform hover:-translate-y-0.5 group disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <Sparkles className="w-5 h-5 text-yellow-500 group-hover:animate-pulse" />
+                            <span className="font-medium">
+                              {t.visualize}
+                            </span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Song Lyrics Section */}
                   {(isGeneratingLyrics || songLyrics) && (
-                    <div className="bg-white p-6 animate-slide-up print:p-4">
+                    <div className="border-t border-bible-200 bg-white p-6 animate-slide-up print:p-4">
                       <div className="flex items-center justify-between mb-4">
                          <h4 className="text-lg font-display font-bold text-bible-800 flex items-center gap-2">
                            <Music className="w-5 h-5 text-bible-500" />
