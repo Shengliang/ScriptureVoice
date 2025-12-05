@@ -107,7 +107,7 @@ const getAI = () => {
   }
   
   // @ts-ignore
-  return new GoogleGenAI({ apiKey: apiKey, headers: { 'x-client-version': '5.6.5' } });
+  return new GoogleGenAI({ apiKey: apiKey, headers: { 'x-client-version': '5.7.0' } });
 };
 
 // --- Diagnostics API (For Settings Modal) ---
@@ -466,4 +466,77 @@ export const generateSegmentSpeech = async (
     handleApiError(lastError, "Speech Generation");
     throw lastError;
   }, 1000);
+};
+
+// Helper for image cache key hashing
+const getTextHash = (text: string) => {
+  let hash = 0;
+  if (text.length === 0) return hash;
+  for (let i = 0; i < text.length; i++) {
+    const char = text.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash |= 0; 
+  }
+  return hash;
+};
+
+export const getCachedImage = (text: string): string | null => {
+  const cacheKey = `image_v1_${getTextHash(text)}`;
+  if (searchCache.has(cacheKey)) {
+    return searchCache.get(cacheKey) as string;
+  }
+  return null;
+};
+
+export const generateBibleImage = async (
+  bibleText: string
+): Promise<string> => {
+  await ensureInit();
+
+  const cacheKey = `image_v1_${getTextHash(bibleText)}`;
+  
+  if (searchCache.has(cacheKey)) {
+    return searchCache.get(cacheKey) as string;
+  }
+
+  try {
+    if (!navigator.onLine) throw new Error("Offline");
+
+    const ai = getAI();
+
+    // Use gemini-2.5-flash-image for image generation
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash-image',
+      contents: {
+        parts: [
+          { text: `Create a dignified, classical oil painting depicting the themes in this bible verse: "${bibleText.substring(0, 300)}..."` }
+        ]
+      },
+      // No responseMimeType for image generation models
+    });
+
+    let imageUrl = "";
+    
+    // Parse response for inline image data
+    if (response.candidates?.[0]?.content?.parts) {
+        for (const part of response.candidates[0].content.parts) {
+            if (part.inlineData) {
+                imageUrl = `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`;
+                break;
+            }
+        }
+    }
+
+    if (imageUrl) {
+      searchCache.set(cacheKey, imageUrl);
+      persistCache();
+      return imageUrl;
+    }
+    
+    throw new Error("No image data in response");
+
+  } catch (error) {
+    handleApiError(error, "Image Generation");
+    throw error;
+  }
 };

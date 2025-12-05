@@ -62,7 +62,7 @@ const App: React.FC = () => {
   const [pendingCacheData, setPendingCacheData] = useState<SearchResult | null>(null);
   const [pendingQuery, setPendingQuery] = useState<string>('');
 
-  const CLIENT_VERSION = "5.6.2";
+  const CLIENT_VERSION = "5.7.0";
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   
   const t = TRANSLATIONS[language];

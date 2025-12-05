@@ -31,7 +31,6 @@ const initApiKey = async (retries = 2) => {
   if (isInitialized && serverApiKey) return;
   
   try {
-    console.log("Fetching API config from server...");
     // Add timestamp to prevent caching on mobile devices
     const response = await fetch(`/api/config?t=${Date.now()}`);
     
@@ -39,7 +38,6 @@ const initApiKey = async (retries = 2) => {
       const data = await response.json();
       if (data.apiKey) {
         serverApiKey = data.apiKey;
-        console.log("API Key received from server.");
         initError = null;
       } else {
         console.warn("Server is online but API_KEY is not set.");
@@ -47,18 +45,15 @@ const initApiKey = async (retries = 2) => {
       }
     } else {
       console.warn("Server config endpoint returned status:", response.status);
-      // If 404, it might be a proxy issue locally or server startup issue
       if (response.status === 404 && retries > 0) {
-         console.log(`Retrying config fetch... (${retries} left)`);
          await delay(1000);
          return initApiKey(retries - 1);
       }
       initError = `Server Status: ${response.status}`;
     }
   } catch (e: any) {
-    console.warn("Could not fetch API config (Network error or Offline).", e);
+    console.warn("Could not fetch API config (Network error or Offline).");
     if (retries > 0) {
-        console.log(`Retrying config fetch... (${retries} left)`);
         await delay(1000);
         return initApiKey(retries - 1);
     }
@@ -77,7 +72,6 @@ const ensureInit = async () => {
   
   // If failed, try one more time if it's been a while or logic flow demands it
   if (!serverApiKey && initError === "Network Error / Offline") {
-      // A 'soft' retry if we are desperate for a key
       await initApiKey(0);
   }
 };
@@ -101,7 +95,7 @@ const handleApiError = (error: any, context: string) => {
 
 // Helper to get AI instance
 const getAI = () => {
-  // 1. Check LocalStorage (User Override)
+  // 1. Check LocalStorage (User Override) - Allows bypassing 429 on shared key
   const localKey = typeof localStorage !== 'undefined' ? localStorage.getItem('user_api_key') : null;
   
   // 2. Check Server-Provided Key
@@ -112,17 +106,14 @@ const getAI = () => {
     throw new Error("No API Key found. Please configure it in Settings or Server Env Vars.");
   }
   
-  // @ts-ignore - headers is valid for this SDK version
-  return new GoogleGenAI({ apiKey: apiKey, headers: { 'x-client-version': '5.6.2' } });
+  // @ts-ignore
+  return new GoogleGenAI({ apiKey: apiKey, headers: { 'x-client-version': '5.7.0' } });
 };
 
 // --- Diagnostics API (For Settings Modal) ---
 export const getDiagnostics = async () => {
-  // Force a re-check
   await initApiKey(0);
-
   const localKey = localStorage.getItem('user_api_key');
-  
   return {
     serverReachable: !initError || initError === "Server Online (No Key Configured)",
     serverHasKey: !!serverApiKey,
@@ -136,7 +127,6 @@ export const testConnection = async (): Promise<{ success: boolean; message: str
   try {
     await ensureInit();
     const ai = getAI();
-    // Cheap call to test connectivity
     const result = await ai.models.countTokens({
       model: 'gemini-2.5-flash',
       contents: [{ parts: [{ text: "Ping" }] }]
@@ -220,11 +210,6 @@ export const getSavedHistory = (language: Language): HistoryItem[] => {
   return history.sort((a, b) => b.timestamp - a.timestamp);
 };
 
-export const getCachedImage = (text: string): string | null => {
-  const key = `img_v1_${text.substring(0, 50).replace(/\s+/g, '')}`;
-  return searchCache.get(key) || null;
-};
-
 // --- API Functions ---
 
 const getLanguagePrompt = (language: Language): string => {
@@ -264,7 +249,7 @@ export const searchVerseOnly = async (
   language: Language = 'en',
   forceRefresh: boolean = false
 ): Promise<SearchResult> => {
-  // CRITICAL: Wait for the server to send the API key before we start
+  // Critical: Wait for server config
   await ensureInit();
 
   const cacheKey = `verse_v1_${language}_${query.trim().toLowerCase()}`;
@@ -332,7 +317,6 @@ export const generateDevotional = async (
   lengthMinutes: number,
   forceRefresh: boolean = false
 ): Promise<string> => {
-  // Ensure init is done
   await ensureInit();
 
   const cacheKey = `context_v1_${language}_${lengthMinutes}_${reference.replace(/\s+/g, '_')}`;
@@ -385,7 +369,6 @@ export const generateSongLyrics = async (
   bibleText: string,
   language: Language
 ): Promise<string> => {
-  // Ensure init is done
   await ensureInit();
 
   const cacheKey = `song_v2_${language}_${reference.replace(/\s+/g, '_')}`;
@@ -424,50 +407,10 @@ export const generateSongLyrics = async (
   }
 };
 
-export const generateBibleImage = async (prompt: string): Promise<string> => {
-  // Ensure init is done
-  await ensureInit();
-
-  const cacheKey = `img_v1_${prompt.substring(0, 50).replace(/\s+/g, '')}`;
-  
-  if (searchCache.has(cacheKey)) {
-    return searchCache.get(cacheKey) as string;
-  }
-
-  try {
-    if (!navigator.onLine) throw new Error("Offline");
-    const ai = getAI();
-
-    const response = await ai.models.generateImages({
-      model: 'imagen-4.0-generate-001',
-      prompt: `A highly detailed, cinematic, and respectful biblical illustration. Visualizing: "${prompt}". Style: Oil painting, masterpiece.`,
-      config: {
-        numberOfImages: 1,
-        outputMimeType: 'image/jpeg',
-        aspectRatio: '16:9',
-      },
-    });
-
-    const base64ImageBytes = response.generatedImages?.[0]?.image?.imageBytes;
-    if (!base64ImageBytes) throw new Error("No image generated.");
-    
-    const url = `data:image/jpeg;base64,${base64ImageBytes}`;
-    
-    searchCache.set(cacheKey, url);
-    persistCache();
-
-    return url;
-  } catch (error) {
-    handleApiError(error, "Image Generation");
-    throw error;
-  }
-};
-
 export const generateSegmentSpeech = async (
   text: string,
   voice: VoiceName
 ): Promise<string> => {
-  // Ensure init is done
   await ensureInit();
 
   if (!text || !text.trim()) {
@@ -510,6 +453,7 @@ export const generateSegmentSpeech = async (
         return URL.createObjectURL(wavBlob);
       } catch (error: any) {
         lastError = error;
+        // Don't retry on fatal errors
         if (error.message && (error.message.includes("Safety") || error.message.includes("429") || error.message.includes("403"))) {
           throw error; 
         }
@@ -522,4 +466,76 @@ export const generateSegmentSpeech = async (
     handleApiError(lastError, "Speech Generation");
     throw lastError;
   }, 1000);
+};
+
+// Helper for image cache key hashing
+const getTextHash = (text: string) => {
+  let hash = 0;
+  if (text.length === 0) return hash;
+  for (let i = 0; i < text.length; i++) {
+    const char = text.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash |= 0; 
+  }
+  return hash;
+};
+
+export const getCachedImage = (text: string): string | null => {
+  const cacheKey = `image_v1_${getTextHash(text)}`;
+  if (searchCache.has(cacheKey)) {
+    return searchCache.get(cacheKey) as string;
+  }
+  return null;
+};
+
+export const generateBibleImage = async (
+  bibleText: string
+): Promise<string> => {
+  await ensureInit();
+
+  const cacheKey = `image_v1_${getTextHash(bibleText)}`;
+  
+  if (searchCache.has(cacheKey)) {
+    return searchCache.get(cacheKey) as string;
+  }
+
+  try {
+    if (!navigator.onLine) throw new Error("Offline");
+
+    const ai = getAI();
+
+    // Use gemini-2.5-flash-image for image generation
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash-image',
+      contents: {
+        parts: [
+          { text: `Create a dignified, classical oil painting depicting the themes in this bible verse: "${bibleText.substring(0, 300)}..."` }
+        ]
+      },
+    });
+
+    let imageUrl = "";
+    
+    // Parse response for inline image data
+    if (response.candidates?.[0]?.content?.parts) {
+        for (const part of response.candidates[0].content.parts) {
+            if (part.inlineData) {
+                imageUrl = `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`;
+                break;
+            }
+        }
+    }
+
+    if (imageUrl) {
+      searchCache.set(cacheKey, imageUrl);
+      persistCache();
+      return imageUrl;
+    }
+    
+    throw new Error("No image data in response");
+
+  } catch (error) {
+    handleApiError(error, "Image Generation");
+    throw error;
+  }
 };
