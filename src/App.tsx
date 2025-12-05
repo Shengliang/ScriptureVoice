@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { BookOpen, Loader2, Volume2, ImageIcon, Menu, ChevronLeft, ChevronRight, Info, Sparkles, Music, Copy, Check, History, WifiOff, Download, Share2, ClipboardCopy, ExternalLink, Settings } from './components/Icons';
 import SearchBox from './components/SearchBox';
@@ -62,7 +61,7 @@ const App: React.FC = () => {
   const [pendingCacheData, setPendingCacheData] = useState<SearchResult | null>(null);
   const [pendingQuery, setPendingQuery] = useState<string>('');
 
-  const CLIENT_VERSION = "5.9.0";
+  const CLIENT_VERSION = "5.9.1";
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   
   const t = TRANSLATIONS[language];
@@ -699,7 +698,7 @@ const App: React.FC = () => {
                     </button>
                   </div>
                   
-                  {/* Action Buttons Group (Play + Song + Share) */}
+                  {/* Action Buttons Group (Play + Share) */}
                   <div className="flex items-center gap-2 w-full md:w-auto justify-center md:justify-end mt-2 md:mt-0 print:hidden">
                      {/* Play Button */}
                      {playlist.length === 0 && (
@@ -819,7 +818,7 @@ const App: React.FC = () => {
                               {t.visualize}
                             </span>
                           </button>
-                          {/* Song button removed from here */}
+                          
                         </div>
                       </div>
                     )}
