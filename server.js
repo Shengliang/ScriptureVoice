@@ -46,7 +46,7 @@ app.get('/api/config', (req, res) => {
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'ok', 
-    version: '5.8.0',
+    version: '5.9.0',
     apiKeyConfigured: !!process.env.API_KEY 
   });
 });
@@ -57,7 +57,7 @@ app.get('/status', (req, res) => {
   res.send(`
     <html>
       <body style="font-family: sans-serif; padding: 2rem; text-align: center;">
-        <h1>Scripture Voice Server v5.8.0</h1>
+        <h1>Scripture Voice Server v5.9.0</h1>
         <p>Status: <strong>Online</strong></p>
         <p>Port: ${PORT}</p>
         <p>API Key Configured: <strong style="color: ${hasKey ? 'green' : 'red'}">${hasKey ? 'YES' : 'NO'}</strong></p>
@@ -91,7 +91,7 @@ app.get('*', (req, res) => {
 // Start Server
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`=================================`);
-  console.log(`   SCRIPTURE VOICE SERVER v5.8.0`);
+  console.log(`   SCRIPTURE VOICE SERVER v5.9.0`);
   console.log(`   Listening on port ${PORT}`);
   console.log(`   http://0.0.0.0:${PORT}`);
   const hasKey = !!(process.env.API_KEY || process.env.GOOGLE_API_KEY);

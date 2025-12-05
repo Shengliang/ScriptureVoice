@@ -62,7 +62,7 @@ const App: React.FC = () => {
   const [pendingCacheData, setPendingCacheData] = useState<SearchResult | null>(null);
   const [pendingQuery, setPendingQuery] = useState<string>('');
 
-  const CLIENT_VERSION = "5.8.0";
+  const CLIENT_VERSION = "5.9.0";
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   
   const t = TRANSLATIONS[language];
@@ -699,7 +699,7 @@ const App: React.FC = () => {
                     </button>
                   </div>
                   
-                  {/* Action Buttons Group (Play + Share) */}
+                  {/* Action Buttons Group (Play + Song + Share) */}
                   <div className="flex items-center gap-2 w-full md:w-auto justify-center md:justify-end mt-2 md:mt-0 print:hidden">
                      {/* Play Button */}
                      {playlist.length === 0 && (
@@ -720,14 +720,15 @@ const App: React.FC = () => {
                       </button>
                     )}
 
-                    {/* Compose Song Button (Small in header) */}
+                    {/* Compose Song Button (Moved here, next to Play) */}
                     <button
                       onClick={handleGenerateLyrics}
                       disabled={!isOnline || isGeneratingLyrics}
-                      className={`p-2.5 bg-white text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded-full shadow-sm border border-purple-100 transition-colors disabled:opacity-50 ${songLyrics ? 'bg-purple-100 border-purple-300' : ''}`}
+                      className={`flex items-center gap-2 bg-white text-purple-600 px-4 py-2.5 rounded-full font-medium shadow-sm border border-purple-100 hover:bg-purple-50 hover:text-purple-800 transition-all disabled:opacity-50 ${songLyrics ? 'bg-purple-50 border-purple-200' : ''}`}
                       title={t.composeSong}
                     >
                       {isGeneratingLyrics ? <Loader2 className="w-5 h-5 animate-spin" /> : <Music className="w-5 h-5" />}
+                      <span className="hidden md:inline">{t.composeSong}</span>
                     </button>
 
                     {/* Share & Download Menu */}
@@ -781,7 +782,7 @@ const App: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Creative Area - Image and Song */}
+                {/* Creative Area - Image (Song button removed from here) */}
                 <div className="w-full bg-stone-100 border-b border-bible-50 relative print:bg-white">
                   
                   {/* Image Generation Section */}
@@ -818,6 +819,7 @@ const App: React.FC = () => {
                               {t.visualize}
                             </span>
                           </button>
+                          {/* Song button removed from here */}
                         </div>
                       </div>
                     )}
