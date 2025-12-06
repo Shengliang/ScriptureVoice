@@ -107,7 +107,7 @@ const getAI = () => {
   }
   
   // @ts-ignore
-  return new GoogleGenAI({ apiKey: apiKey, headers: { 'x-client-version': '5.7.0' } });
+  return new GoogleGenAI({ apiKey: apiKey, headers: { 'x-client-version': '5.9.3' } });
 };
 
 // --- Diagnostics API (For Settings Modal) ---
@@ -512,6 +512,7 @@ export const generateBibleImage = async (
           { text: `Create a dignified, classical oil painting depicting the themes in this bible verse: "${bibleText.substring(0, 300)}..."` }
         ]
       },
+      // No responseMimeType for image generation models
     });
 
     let imageUrl = "";
