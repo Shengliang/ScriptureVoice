@@ -61,7 +61,7 @@ const App: React.FC = () => {
   const [pendingCacheData, setPendingCacheData] = useState<SearchResult | null>(null);
   const [pendingQuery, setPendingQuery] = useState<string>('');
 
-  const CLIENT_VERSION = "5.9.1";
+  const CLIENT_VERSION = "5.9.2";
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   
   const t = TRANSLATIONS[language];
@@ -781,7 +781,7 @@ const App: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Creative Area - Image (Song button removed from here) */}
+                {/* Creative Area - Image and Song */}
                 <div className="w-full bg-stone-100 border-b border-bible-50 relative print:bg-white">
                   
                   {/* Image Generation Section */}
@@ -807,7 +807,7 @@ const App: React.FC = () => {
                       </div>
                     ) : (
                       <div className="h-56 flex items-center justify-center bg-[radial-gradient(#d2bab0_1px,transparent_1px)] [background-size:24px_24px] print:hidden">
-                        <div className="flex gap-4">
+                        
                           <button 
                             onClick={handleGenerateImage}
                             disabled={!isOnline}
@@ -819,7 +819,6 @@ const App: React.FC = () => {
                             </span>
                           </button>
                           
-                        </div>
                       </div>
                     )}
                   </div>

@@ -1,7 +1,8 @@
+
 {
   "name": "scripture-voice-ai",
   "private": true,
-  "version": "5.9.1",
+  "version": "5.9.3",
   "type": "module",
   "main": "server.js",
   "engines": {

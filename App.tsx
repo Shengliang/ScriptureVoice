@@ -62,7 +62,7 @@ const App: React.FC = () => {
   const [pendingCacheData, setPendingCacheData] = useState<SearchResult | null>(null);
   const [pendingQuery, setPendingQuery] = useState<string>('');
 
-  const CLIENT_VERSION = "5.7.0";
+  const CLIENT_VERSION = "5.9.3";
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   
   const t = TRANSLATIONS[language];
@@ -720,6 +720,17 @@ const App: React.FC = () => {
                       </button>
                     )}
 
+                    {/* Compose Song Button (Moved here, next to Play) */}
+                    <button
+                      onClick={handleGenerateLyrics}
+                      disabled={!isOnline || isGeneratingLyrics}
+                      className={`flex items-center gap-2 bg-white text-purple-600 px-4 py-2.5 rounded-full font-medium shadow-sm border border-purple-100 hover:bg-purple-50 hover:text-purple-800 transition-all disabled:opacity-50 ${songLyrics ? 'bg-purple-50 border-purple-200' : ''}`}
+                      title={t.composeSong}
+                    >
+                      {isGeneratingLyrics ? <Loader2 className="w-5 h-5 animate-spin" /> : <Music className="w-5 h-5" />}
+                      <span className="hidden md:inline">{t.composeSong}</span>
+                    </button>
+
                     {/* Share & Download Menu */}
                     <div className="relative" data-html2canvas-ignore>
                       <button
@@ -797,7 +808,7 @@ const App: React.FC = () => {
                       </div>
                     ) : (
                       <div className="h-56 flex items-center justify-center bg-[radial-gradient(#d2bab0_1px,transparent_1px)] [background-size:24px_24px] print:hidden">
-                        <div className="flex gap-4">
+                        
                           <button 
                             onClick={handleGenerateImage}
                             disabled={!isOnline}
@@ -809,17 +820,6 @@ const App: React.FC = () => {
                             </span>
                           </button>
                           
-                          <button 
-                            onClick={handleGenerateLyrics}
-                            disabled={!isOnline}
-                            className="flex items-center gap-2 bg-white/90 backdrop-blur text-bible-700 px-5 py-3 rounded-xl border border-bible-200 shadow-md hover:shadow-lg hover:bg-white hover:text-bible-900 transition-all transform hover:-translate-y-0.5 group disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            <Music className="w-5 h-5 text-purple-500 group-hover:animate-bounce" />
-                            <span className="font-medium">
-                              {t.composeSong}
-                            </span>
-                          </button>
-                        </div>
                       </div>
                     )}
                   </div>
