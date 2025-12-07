@@ -107,7 +107,7 @@ const getAI = () => {
   }
   
   // @ts-ignore
-  return new GoogleGenAI({ apiKey: apiKey, headers: { 'x-client-version': '5.9.3' } });
+  return new GoogleGenAI({ apiKey: apiKey, headers: { 'x-client-version': '5.9.4' } });
 };
 
 // --- Diagnostics API (For Settings Modal) ---

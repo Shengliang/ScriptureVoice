@@ -1,8 +1,7 @@
-
 {
   "name": "scripture-voice-ai",
   "private": true,
-  "version": "5.9.3",
+  "version": "5.9.4",
   "type": "module",
   "main": "server.js",
   "engines": {
@@ -26,12 +25,12 @@
     "jspdf": "^2.5.1",
     "lucide-react": "^0.469.0",
     "node-cache": "^5.1.2",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1",
     "typescript": "^5.5.3",
     "vite": "^5.4.1",
     "@types/node": "^20.14.2",
-    "@types/react": "^18.3.3",
-    "@types/react-dom": "^18.3.0"
+    "@types/react": "^19.0.8",
+    "@types/react-dom": "^19.0.3"
   }
 }
